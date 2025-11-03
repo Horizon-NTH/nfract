@@ -11,6 +11,7 @@ FetchContent_MakeAvailable(googletest)
 
 set(TEST_SOURCES
         src/app/ArgumentsParserTest.cpp
+        src/core/ImageTest.cpp
 )
 
 set(TEST_TARGET runTests)
