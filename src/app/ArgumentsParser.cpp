@@ -71,11 +71,11 @@ namespace nfract
 
         if (arguments.xmin >= arguments.xmax)
         {
-            throw ParseError("xmin must be < xmax");
+            throw std::invalid_argument("xmin must be < xmax");
         }
         if (arguments.ymin >= arguments.ymax)
         {
-            throw ParseError("ymin must be < ymax");
+            throw std::invalid_argument("ymin must be < ymax");
         }
 
         return arguments;

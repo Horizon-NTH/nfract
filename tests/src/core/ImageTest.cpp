@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <numeric>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -98,7 +99,7 @@ TEST(ImageTest, ConstructedImageAllocatesPixelBuffer)
     EXPECT_EQ(image.height(), height);
     EXPECT_FALSE(image.empty());
     EXPECT_EQ(image.pixels().size(), static_cast<std::size_t>(width * height * 4));
-    EXPECT_TRUE(std::all_of(image.pixels().begin(), image.pixels().end(), [](const Image::Pixel p) { return p == 0; }));
+    EXPECT_TRUE(std::all_of(image.pixels().begin(), image.pixels().end(), [](const Image::pixel_type p) { return p == 0; }));
 }
 
 TEST(ImageTest, RowProvidesWritableSpan)
@@ -107,10 +108,27 @@ TEST(ImageTest, RowProvidesWritableSpan)
 
     auto row = image.row(1);
     ASSERT_EQ(row.size(), static_cast<std::size_t>(image.width() * 4));
-    std::iota(row.begin(), row.end(), Image::Pixel{1});
+    std::iota(row.begin(), row.end(), Image::pixel_type{1});
 
     const auto reread = std::as_const(image).row(1);
     EXPECT_TRUE(std::ranges::equal(row, reread));
+}
+
+TEST(ImageTest, ConstructingImageWithNegativeDimensionsThrows)
+{
+    EXPECT_THROW(Image(-1, 0), std::invalid_argument);
+    EXPECT_THROW(Image(0, -1), std::invalid_argument);
+    EXPECT_THROW(Image(-4, -4), std::invalid_argument);
+}
+
+TEST(ImageTest, RowOutOfRangeThrows)
+{
+    Image image{3, 3};
+
+    EXPECT_THROW(static_cast<void>(image.row(-1)), std::out_of_range);
+    EXPECT_THROW(static_cast<void>(image.row(image.height())), std::out_of_range);
+    EXPECT_THROW(static_cast<void>(std::as_const(image).row(-1)), std::out_of_range);
+    EXPECT_THROW(static_cast<void>(std::as_const(image).row(image.height())), std::out_of_range);
 }
 
 TEST(ImageTest, PixelAccessReturnsChannelsForCoordinate)
@@ -135,6 +153,20 @@ TEST(ImageTest, PixelAccessReturnsChannelsForCoordinate)
     EXPECT_EQ(const_pixel[0], 10);
 }
 
+TEST(ImageTest, PixelOutOfRangeThrows)
+{
+    Image image{4, 4};
+
+    EXPECT_THROW(static_cast<void>(image.pixel(-1, 0)), std::out_of_range);
+    EXPECT_THROW(static_cast<void>(image.pixel(0, -1)), std::out_of_range);
+    EXPECT_THROW(static_cast<void>(image.pixel(image.width(), 0)), std::out_of_range);
+    EXPECT_THROW(static_cast<void>(image.pixel(0, image.height())), std::out_of_range);
+
+    const Image& const_image = image;
+    EXPECT_THROW(static_cast<void>(const_image.pixel(-1, 0)), std::out_of_range);
+    EXPECT_THROW(static_cast<void>(const_image.pixel(0, -1)), std::out_of_range);
+}
+
 TEST(ImageTest, SavePngFailsForEmptyImage)
 {
     const Image image;
@@ -152,7 +184,7 @@ TEST(ImageTest, SavePngWritesFile)
     for (int y = 0; y < image.height(); ++y)
     {
         auto row = image.row(y);
-        std::iota(row.begin(), row.end(), static_cast<Image::Pixel>(y * 10));
+        std::iota(row.begin(), row.end(), static_cast<Image::pixel_type>(y * 10));
     }
 
     const auto path = make_temp_png("nfract-image");

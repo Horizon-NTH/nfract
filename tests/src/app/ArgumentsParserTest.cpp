@@ -9,7 +9,6 @@
 
 using nfract::Arguments;
 using nfract::ArgumentsParser;
-using nfract::ParseError;
 
 namespace
 {
@@ -122,7 +121,7 @@ TEST(ArgumentsParserTest, ThrowsWhenXminIsNotLessThanXmax)
         "--xmax", "0.0"
     };
 
-    EXPECT_THROW(static_cast<void>(ArgumentsParser::parse(argv.span())), ParseError);
+    EXPECT_THROW(static_cast<void>(ArgumentsParser::parse(argv.span())), std::invalid_argument);
 }
 
 TEST(ArgumentsParserTest, ThrowsWhenYminIsNotLessThanYmax)
@@ -133,5 +132,5 @@ TEST(ArgumentsParserTest, ThrowsWhenYminIsNotLessThanYmax)
         "--ymax", "2.0"
     };
 
-    EXPECT_THROW(static_cast<void>(ArgumentsParser::parse(argv.span())), ParseError);
+    EXPECT_THROW(static_cast<void>(ArgumentsParser::parse(argv.span())), std::invalid_argument);
 }

@@ -1,6 +1,6 @@
 #include "core/Image.hpp"
 
-#include <cassert>
+#include <stdexcept>
 #include <string>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -12,12 +12,15 @@ namespace nfract
         m_width(width),
         m_height(height)
     {
-        assert(width >= 0 && height >= 0);
+        if (width < 0 || height < 0)
+        {
+            throw std::invalid_argument("Image dimensions must be non-negative");
+        }
 
         if (width > 0 && height > 0)
         {
             const auto count = static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4u;
-            m_pixels.resize(count, Pixel{0});
+            m_pixels.resize(count, pixel_type{0});
         }
     }
 
@@ -36,9 +39,12 @@ namespace nfract
         return m_width <= 0 || m_height <= 0 || m_pixels.empty();
     }
 
-    std::span<Image::Pixel> Image::row(const int y) noexcept
+    std::span<Image::pixel_type> Image::row(const int y)
     {
-        assert(y >= 0 && y < m_height);
+        if (y < 0 || y >= m_height)
+        {
+            throw std::out_of_range("Image::row index out of range");
+        }
         const auto offset = static_cast<std::size_t>(y) * static_cast<std::size_t>(m_width) * 4u;
         return std::span{
             m_pixels.data() + offset,
@@ -46,9 +52,12 @@ namespace nfract
         };
     }
 
-    std::span<const Image::Pixel> Image::row(const int y) const noexcept
+    std::span<const Image::pixel_type> Image::row(const int y) const
     {
-        assert(y >= 0 && y < m_height);
+        if (y < 0 || y >= m_height)
+        {
+            throw std::out_of_range("Image::row index out of range");
+        }
         const auto offset = static_cast<std::size_t>(y) * static_cast<std::size_t>(m_width) * 4u;
         return std::span{
             m_pixels.data() + offset,
@@ -56,22 +65,52 @@ namespace nfract
         };
     }
 
-    Image::Pixel* Image::pixel(const int x, const int y) noexcept
+    Image::pixel_type* Image::pixel(const int x, const int y)
     {
-        assert(x >= 0 && x < m_width);
-        assert(y >= 0 && y < m_height);
-        const auto idx = (static_cast<std::size_t>(y) *
-            static_cast<std::size_t>(m_width) +
-            static_cast<std::size_t>(x)) * 4u;
-        return m_pixels.data() + idx;
-    }
-
-    const Image::Pixel* Image::pixel(const int x, const int y) const noexcept
-    {
-        assert(x >= 0 && x < m_width);
-        assert(y >= 0 && y < m_height);
+        if (x < 0 || x >= m_width)
+        {
+            throw std::out_of_range("Image::pixel x index out of range");
+        }
+        if (y < 0 || y >= m_height)
+        {
+            throw std::out_of_range("Image::pixel y index out of range");
+        }
         const auto idx = (static_cast<std::size_t>(y) * static_cast<std::size_t>(m_width) + static_cast<std::size_t>(x)) * 4u;
         return m_pixels.data() + idx;
+    }
+
+    const Image::pixel_type* Image::pixel(const int x, const int y) const
+    {
+        if (x < 0 || x >= m_width)
+        {
+            throw std::out_of_range("Image::pixel x index out of range");
+        }
+        if (y < 0 || y >= m_height)
+        {
+            throw std::out_of_range("Image::pixel y index out of range");
+        }
+        const auto idx = (static_cast<std::size_t>(y) * static_cast<std::size_t>(m_width) + static_cast<std::size_t>(x)) * 4u;
+        return m_pixels.data() + idx;
+    }
+
+    Image::pixel_type* Image::data() noexcept
+    {
+        return m_pixels.data();
+    }
+
+    const Image::pixel_type* Image::data() const noexcept
+    {
+        return m_pixels.data();
+    }
+
+    std::span<Image::pixel_type> Image::pixels() noexcept
+    {
+        return m_pixels;
+    }
+
+    std::span<const Image::pixel_type> Image::pixels() const noexcept
+    {
+        return m_pixels;
     }
 
     bool Image::save_png(const std::filesystem::path& path, std::optional<int> stride_bytes) const noexcept

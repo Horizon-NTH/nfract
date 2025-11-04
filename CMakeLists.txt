@@ -13,11 +13,13 @@ option(ENABLE_TESTS "Enable testing" OFF)
 set(HEADER_FILES
         include/app/ArgumentsParser.hpp
         include/core/Image.hpp
+        include/core/RootsTable.hpp
 )
 
 set(SOURCE_FILES
         src/app/ArgumentsParser.cpp
         src/core/Image.cpp
+        src/core/RootsTable.cpp
 )
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)

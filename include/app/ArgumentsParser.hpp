@@ -20,12 +20,6 @@ namespace nfract
         std::string outputPath = "nfract.png";
     };
 
-    class ParseError final : public std::runtime_error
-    {
-    public:
-        using std::runtime_error::runtime_error;
-    };
-
     class ArgumentsParser
     {
     public:
