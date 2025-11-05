@@ -1,82 +1,21 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <numeric>
-#include <random>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
 
 #include "core/Image.hpp"
+#include "../support/TestUtils.hpp"
 
 using nfract::Image;
+using nfract::test::TempFileGuard;
 
-namespace
-{
-    [[nodiscard]] std::filesystem::path make_temp_png(const std::string_view prefix)
-    {
-        thread_local std::mt19937_64 rng{std::random_device{}()};
-        const auto timestamp = std::chrono::steady_clock::now().time_since_epoch().count();
-        const auto random_value = rng();
-
-        std::string filename(prefix);
-        filename.append("-");
-        filename.append(std::to_string(timestamp));
-        filename.append("-");
-        filename.append(std::to_string(random_value));
-        filename.append(".png");
-
-        return std::filesystem::temp_directory_path() / filename;
-    }
-
-    class TempFileGuard
-    {
-    public:
-        explicit TempFileGuard(std::filesystem::path path) noexcept :
-            m_path(std::move(path))
-        {
-        }
-
-        TempFileGuard(const TempFileGuard&) = delete;
-        TempFileGuard& operator=(const TempFileGuard&) = delete;
-
-        TempFileGuard(TempFileGuard&& other) noexcept :
-            m_path(std::exchange(other.m_path, {}))
-        {
-        }
-
-        TempFileGuard& operator=(TempFileGuard&& other) noexcept
-        {
-            if (this != &other)
-            {
-                remove();
-                m_path = std::exchange(other.m_path, {});
-            }
-            return *this;
-        }
-
-        ~TempFileGuard()
-        {
-            remove();
-        }
-
-    private:
-        void remove() const noexcept
-        {
-            if (!m_path.empty())
-            {
-                std::error_code ec;
-                std::filesystem::remove(m_path, ec);
-            }
-        }
-
-        std::filesystem::path m_path;
-    };
-}
+namespace test_utils = nfract::test;
 
 TEST(ImageTest, DefaultConstructedImageIsEmpty)
 {
@@ -170,7 +109,7 @@ TEST(ImageTest, PixelOutOfRangeThrows)
 TEST(ImageTest, SavePngFailsForEmptyImage)
 {
     const Image image;
-    const auto path = make_temp_png("nfract-empty");
+    const auto path = test_utils::make_unique_path("nfract-empty", ".png");
     TempFileGuard guard{path};
 
     EXPECT_FALSE(image.save_png(path));
@@ -187,7 +126,7 @@ TEST(ImageTest, SavePngWritesFile)
         std::iota(row.begin(), row.end(), static_cast<Image::pixel_type>(y * 10));
     }
 
-    const auto path = make_temp_png("nfract-image");
+    const auto path = test_utils::make_unique_path("nfract-image", ".png");
     TempFileGuard guard{path};
 
     ASSERT_TRUE(image.save_png(path));

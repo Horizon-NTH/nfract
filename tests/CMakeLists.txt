@@ -10,6 +10,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 set(TEST_SOURCES
+        src/app/ApplicationTest.cpp
         src/app/ArgumentsParserTest.cpp
         src/core/ImageTest.cpp
         src/core/RootsTableTest.cpp

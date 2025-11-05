@@ -14,12 +14,16 @@ set(HEADER_FILES
         include/app/ArgumentsParser.hpp
         include/core/Image.hpp
         include/core/RootsTable.hpp
+        include/core/RenderNewtonCpu.hpp
+        include/app/Application.hpp
 )
 
 set(SOURCE_FILES
         src/app/ArgumentsParser.cpp
         src/core/Image.cpp
         src/core/RootsTable.cpp
+        src/core/RenderNewtonCpu.cpp
+        src/app/Application.cpp
 )
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)

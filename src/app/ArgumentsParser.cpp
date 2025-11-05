@@ -14,6 +14,7 @@ namespace nfract
 
         app.set_help_all_flag("--help-all", "Show all help");
         app.allow_extras(false);
+        app.set_version_flag("-v,--version", PROJECT_VERSION, "Print version information and exit");
 
         app.add_option("-n,--degree", arguments.degree,
                        "Degree n in z^n - 1 = 0")

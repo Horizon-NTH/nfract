@@ -37,8 +37,8 @@ TEST(RootsTableTest, RealAndImagSpansExposeRoots)
     EXPECT_EQ(table.size(), 3);
     EXPECT_FALSE(table.empty());
 
-    const auto real = table.real();
-    const auto imag = table.imag();
+    const auto real = table.re();
+    const auto imag = table.im();
 
     ASSERT_EQ(real.size(), 3);
     ASSERT_EQ(imag.size(), 3);

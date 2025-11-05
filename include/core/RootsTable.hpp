@@ -17,13 +17,13 @@ namespace nfract
         [[nodiscard]] int size() const noexcept;
         [[nodiscard]] bool empty() const noexcept;
 
-        [[nodiscard]] std::span<const value_type> real() const noexcept;
-        [[nodiscard]] std::span<const value_type> imag() const noexcept;
+        [[nodiscard]] std::span<const value_type> re() const noexcept;
+        [[nodiscard]] std::span<const value_type> im() const noexcept;
 
         [[nodiscard]] std::complex<value_type> root(int index) const;
 
     private:
-        std::vector<value_type> m_real;
-        std::vector<value_type> m_imag;
+        std::vector<value_type> m_re;
+        std::vector<value_type> m_im;
     };
 }

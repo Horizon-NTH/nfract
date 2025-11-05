@@ -1,49 +1,17 @@
 #include <gtest/gtest.h>
 
-#include <span>
-#include <string>
-#include <utility>
-#include <vector>
+#include <stdexcept>
 
 #include "app/ArgumentsParser.hpp"
+#include "../support/TestUtils.hpp"
 
 using nfract::Arguments;
 using nfract::ArgumentsParser;
-
-namespace
-{
-    class ArgvView
-    {
-    public:
-        explicit ArgvView(std::initializer_list<std::string_view> args)
-        {
-            m_storage.reserve(args.size());
-            for (const auto& arg : args)
-            {
-                m_storage.emplace_back(arg);
-            }
-
-            m_raw.reserve(m_storage.size());
-            for (auto& s : m_storage)
-            {
-                m_raw.push_back(s.c_str());
-            }
-        }
-
-        [[nodiscard]] std::span<const char* const> span() const noexcept
-        {
-            return {m_raw.data(), m_raw.size()};
-        }
-
-    private:
-        std::vector<std::string> m_storage;
-        std::vector<const char*> m_raw;
-    };
-}
+using nfract::test::ArgvBuilder;
 
 TEST(ArgumentsParserTest, UsesDefaultsWhenNoOverrides)
 {
-    const ArgvView argv{"nfract"};
+    const ArgvBuilder argv{"nfract"};
 
     const Arguments args = ArgumentsParser::parse(argv.span());
 
@@ -61,7 +29,7 @@ TEST(ArgumentsParserTest, UsesDefaultsWhenNoOverrides)
 
 TEST(ArgumentsParserTest, ParsesAllSupportedOptions)
 {
-    const ArgvView argv{
+    const ArgvBuilder argv{
         "nfract",
         "--degree", "7",
         "--width", "800",
@@ -91,7 +59,7 @@ TEST(ArgumentsParserTest, ParsesAllSupportedOptions)
 
 TEST(ArgumentsParserTest, AllowsPartialOverrides)
 {
-    const ArgvView argv{
+    const ArgvBuilder argv{
         "nfract",
         "--degree", "3",
         "--width", "1024",
@@ -115,7 +83,7 @@ TEST(ArgumentsParserTest, AllowsPartialOverrides)
 
 TEST(ArgumentsParserTest, ThrowsWhenXminIsNotLessThanXmax)
 {
-    const ArgvView argv{
+    const ArgvBuilder argv{
         "nfract",
         "--xmin", "1.0",
         "--xmax", "0.0"
@@ -126,7 +94,7 @@ TEST(ArgumentsParserTest, ThrowsWhenXminIsNotLessThanXmax)
 
 TEST(ArgumentsParserTest, ThrowsWhenYminIsNotLessThanYmax)
 {
-    const ArgvView argv{
+    const ArgvBuilder argv{
         "nfract",
         "--ymin", "2.0",
         "--ymax", "2.0"

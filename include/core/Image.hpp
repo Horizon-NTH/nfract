@@ -3,6 +3,7 @@
 #include <vector>
 #include <span>
 #include <filesystem>
+#include <optional>
 
 namespace nfract
 {
