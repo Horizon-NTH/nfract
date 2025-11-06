@@ -12,6 +12,10 @@ option(ENABLE_TESTS "Enable testing" OFF)
 option(RUN_ON_CPU "Run rendering on CPU instead of on ISPC" OFF)
 
 if (NOT RUN_ON_CPU)
+    if (CMAKE_GENERATOR MATCHES "Visual Studio")
+        message(FATAL_ERROR "ISPC is not supported by generator ${CMAKE_GENERATOR}. "
+                "Re-run CMake with a generator that supports ISPC (e.g. Ninja) or configure with -DRUN_ON_CPU=ON to disable ISPC.")
+    endif ()
     enable_language(ISPC)
 endif ()
 

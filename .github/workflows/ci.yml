@@ -21,15 +21,23 @@ jobs:
           - os: windows-latest
             c_compiler: cl
             cpp_compiler: cl
+            platform: windows
+            generator: Ninja
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
+            platform: linux
+            generator: ""
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
+            platform: linux
+            generator: ""
           - os: macos-latest
             c_compiler: clang
             cpp_compiler: clang++
+            platform: macOS
+            generator: ""
         exclude:
           - os: windows-latest
             c_compiler: gcc
@@ -57,19 +65,10 @@ jobs:
         with:
           arch: x64
 
-      - name: Install ISPC (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ispc
-
-      - name: Install ISPC (macOS)
-        if: matrix.os == 'macos-latest'
-        run: brew install ispc
-
-      - name: Install ISPC (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install ispc --no-progress --yes
+      - name: Install ISPC
+        uses: ispc/install-ispc-action@main
+        with:
+          platform: ${{ matrix.platform }}
 
       - name: Set reusable strings
         id: strings
@@ -79,17 +78,23 @@ jobs:
           echo "build-tests-dir=${{ github.workspace }}/build/tests" >> "$GITHUB_OUTPUT"
 
       - name: Configure CMake
-        run: >
-          cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -S ${{ github.workspace }}
-          -DENABLE_TESTS=ON
+        shell: bash
+        run: |
+          generator_args=()
+          if [ -n "${{ matrix.generator }}" ]; then
+            generator_args+=(-G "${{ matrix.generator }}")
+          fi
+          cmake "${generator_args[@]}" \
+            -B "${{ steps.strings.outputs.build-output-dir }}" \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} \
+            -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -S "${{ github.workspace }}" \
+            -DENABLE_TESTS=ON
 
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }}
 
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-tests-dir }}
-        run: ctest --output-on-failure --build-config ${{ matrix.build_type }}
+        run: ctest --output-on-failure
