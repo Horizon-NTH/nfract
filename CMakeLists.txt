@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.21)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -6,15 +6,20 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
 
-project(nfract VERSION 0.0.0)
+project(nfract VERSION 0.0.0 LANGUAGES CXX)
 
 option(ENABLE_TESTS "Enable testing" OFF)
+option(RUN_ON_CPU "Run rendering on CPU instead of on ISPC" OFF)
+
+if (NOT RUN_ON_CPU)
+    enable_language(ISPC)
+endif ()
 
 set(HEADER_FILES
         include/app/ArgumentsParser.hpp
         include/core/Image.hpp
         include/core/RootsTable.hpp
-        include/core/RenderNewtonCpu.hpp
+        include/core/RenderNewton.hpp
         include/app/Application.hpp
 )
 
@@ -22,9 +27,14 @@ set(SOURCE_FILES
         src/app/ArgumentsParser.cpp
         src/core/Image.cpp
         src/core/RootsTable.cpp
-        src/core/RenderNewtonCpu.cpp
+        src/core/RenderNewton.cpp
         src/app/Application.cpp
 )
+
+if (NOT RUN_ON_CPU)
+    add_library(ispc_lib STATIC src/kernel/Newton.ispc)
+    target_include_directories(ispc_lib PUBLIC $<TARGET_PROPERTY:ISPC_HEADER_DIRECTORY>)
+endif ()
 
 set(PROJECT_LIB ${PROJECT_NAME}_lib)
 
@@ -35,11 +45,16 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 target_compile_features(${PROJECT_LIB} PUBLIC cxx_std_20)
 target_compile_definitions(${PROJECT_LIB} PUBLIC PROJECT_VERSION="${PROJECT_VERSION}")
 target_include_directories(${PROJECT_LIB} PRIVATE ${CMAKE_SOURCE_DIR}/deps)
+if (NOT RUN_ON_CPU)
+    target_link_libraries(${PROJECT_LIB} ispc_lib)
+else ()
+    target_compile_definitions(${PROJECT_LIB} PUBLIC RUN_ON_CPU)
+endif ()
 
 add_executable(${PROJECT_NAME} src/Main.cpp)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_LIB} ${DEPS})
+target_link_libraries(${PROJECT_NAME} ${PROJECT_LIB})
 
 if (ENABLE_TESTS)
     add_subdirectory(tests)

@@ -1,7 +1,11 @@
-#include <core/RenderNewtonCpu.hpp>
+#include <core/RenderNewton.hpp>
 
 #include <limits>
 #include <cmath>
+#include <algorithm>
+#ifndef RUN_ON_CPU
+#include <Newton_ispc.h>
+#endif
 
 namespace nfract
 {
@@ -201,4 +205,34 @@ namespace nfract
             }
         }
     }
+
+#ifndef RUN_ON_CPU
+    void render_newton_ispc(const Arguments& p, const RootsTable& roots, Image& image)
+    {
+        if (p.width <= 0 || p.height <= 0 || image.width() != p.width || image.height() != p.height || roots.empty())
+        {
+            return;
+        }
+
+        const auto roots_re = roots.re();
+        const auto roots_im = roots.im();
+
+        ispc::newton_fractal(
+            p.width,
+            p.height,
+            p.xmin,
+            p.xmax,
+            p.ymin,
+            p.ymax,
+            p.degree,
+            p.maxIter,
+            p.tolerance,
+            roots_re.data(),
+            roots_im.data(),
+            roots.size(),
+            image.data()
+        );
+    }
+
+#endif
 }
