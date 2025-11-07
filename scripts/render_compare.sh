@@ -16,6 +16,7 @@ EOF
 DEFAULT_OUTPUT_DIR="renders"
 OUTPUT_DIR=""
 OUTPUT_DIR_SPECIFIED=false
+RENDER_DEGREE=5
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -23,6 +24,11 @@ while [[ $# -gt 0 ]]; do
             [[ $# -lt 2 ]] && { echo "Missing argument for $1" >&2; exit 1; }
             OUTPUT_DIR="$2"
             OUTPUT_DIR_SPECIFIED=true
+            shift 2
+            ;;
+        -n|--degree)
+            [[ $# -lt 2 ]] && { echo "Missing argument for $1" >&2; exit 1; }
+            RENDER_DEGREE="$2"
             shift 2
             ;;
         -h|--help)
@@ -39,6 +45,15 @@ done
 
 if [[ -z "$OUTPUT_DIR" ]]; then
     OUTPUT_DIR="$DEFAULT_OUTPUT_DIR"
+fi
+
+if ! [[ "$RENDER_DEGREE" =~ ^[0-9]+$ ]]; then
+    echo "Degree must be a positive integer (received '$RENDER_DEGREE')." >&2
+    exit 1
+fi
+if (( RENDER_DEGREE < 2 || RENDER_DEGREE > 64 )); then
+    echo "Degree must be between 2 and 64 (received '$RENDER_DEGREE')." >&2
+    exit 1
 fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -60,7 +75,10 @@ COLOR_NAMES=("classic" "neon" "jewelry")
 declare -a ISPC_TIMES
 declare -a CPU_TIMES
 
-RENDER_ARGS=(--width 2560 --height 1440 --max-iter 400)
+RENDER_WIDTH=1536
+RENDER_HEIGHT=1536
+RENDER_MAX_ITER=400
+RENDER_ARGS=(--degree "$RENDER_DEGREE" --width "$RENDER_WIDTH" --height "$RENDER_HEIGHT" --max-iter "$RENDER_MAX_ITER")
 
 color_flag() {
     case "$1" in
@@ -123,7 +141,7 @@ for idx in "${!COLOR_NAMES[@]}"; do
     flag="$(color_flag "$color")"
 
     outfile="${OUTPUT_DIR}/nfract_${color}_ispc.png"
-    cmd=("$ISPC_BIN" --out "$outfile" "${RENDER_ARGS[@]}")
+    cmd=("$ISPC_BIN" "${RENDER_ARGS[@]}" --out "$outfile")
     if [[ -n "$flag" ]]; then
         cmd+=("$flag")
     fi
@@ -136,7 +154,7 @@ for idx in "${!COLOR_NAMES[@]}"; do
     ISPC_TIMES[$idx]="$seconds"
 
     outfile="${OUTPUT_DIR}/nfract_${color}_cpu.png"
-    cmd=("$CPU_BIN" --out "$outfile" "${RENDER_ARGS[@]}")
+    cmd=("$CPU_BIN" "${RENDER_ARGS[@]}" --out "$outfile")
     if [[ -n "$flag" ]]; then
         cmd+=("$flag")
     fi

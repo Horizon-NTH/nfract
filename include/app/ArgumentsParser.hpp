@@ -23,7 +23,7 @@ namespace nfract
         float xmax = 2.0f;
         float ymin = -2.0f;
         float ymax = 2.0f;
-        float tolerance = 1e-6f;
+        float tolerance = 1e-3f;
         std::string outputPath = "nfract.png";
         ColorMode colorMode = ColorMode::CLASSIC;
     };

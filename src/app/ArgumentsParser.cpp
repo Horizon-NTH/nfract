@@ -54,7 +54,7 @@ namespace nfract
 
         app.add_option("--tol", arguments.tolerance,
                        "Convergence tolerance on |f(z)|")
-           ->check(CLI::Range(1e-9, 1e-2))
+           ->check(CLI::Range(1e-6, 1e-2))
            ->default_val(arguments.tolerance);
 
         app.add_option("-o,--out", arguments.outputPath,

@@ -24,7 +24,7 @@ TEST(ArgumentsParserTest, UsesDefaultsWhenNoOverrides)
     EXPECT_FLOAT_EQ(args.xmax, 2.0f);
     EXPECT_FLOAT_EQ(args.ymin, -2.0f);
     EXPECT_FLOAT_EQ(args.ymax, 2.0f);
-    EXPECT_FLOAT_EQ(args.tolerance, 1e-6f);
+    EXPECT_FLOAT_EQ(args.tolerance, 1e-3f);
     EXPECT_EQ(args.outputPath, "nfract.png");
     EXPECT_EQ(args.colorMode, ColorMode::CLASSIC);
 }
@@ -82,7 +82,7 @@ TEST(ArgumentsParserTest, AllowsPartialOverrides)
     EXPECT_FLOAT_EQ(args.xmax, 2.0f);
     EXPECT_FLOAT_EQ(args.ymin, -2.0f);
     EXPECT_FLOAT_EQ(args.ymax, 2.0f);
-    EXPECT_FLOAT_EQ(args.tolerance, 1e-6f);
+    EXPECT_FLOAT_EQ(args.tolerance, 1e-3f);
     EXPECT_EQ(args.colorMode, ColorMode::CLASSIC);
 }
 

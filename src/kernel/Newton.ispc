@@ -291,21 +291,24 @@ export void newton_fractal(uniform int width,
         // Then we can color the pixel based on the root reached and the iteration count
         // We also support a few different color modes
         uint8 R = 0, G = 0, B = 0;
-        if (colorMode == 0)
+        if (iter != maxIter && bestDist2 < tol2)
         {
-            shade_jewel(iter, maxIter, bestIdx, numRoots, bestDist2, R, G, B);
-        }
-        else if (colorMode == 1)
-        {
-            shade_neon(iter, maxIter, bestDist2, R, G, B);
-        }
-        else
-        {
-            float hue = (numRoots > 0) ? (float)bestIdx * invNumRoots : 0.0f;
-            float t   = (maxIter > 1) ? 1.0f - (float)iter * invMaxIter : 1.0f;
-            float val = clamp01(t);
-            float sat = 1.0f;
-            hsv_to_rgb(hue, sat, val, R, G, B);
+            if (colorMode == 0)
+            {
+                shade_jewel(iter, maxIter, bestIdx, numRoots, bestDist2, R, G, B);
+            }
+            else if (colorMode == 1)
+            {
+                shade_neon(iter, maxIter, bestDist2, R, G, B);
+            }
+            else
+            {
+                float hue = (numRoots > 0) ? (float)bestIdx * invNumRoots : 0.0f;
+                float t   = (maxIter > 1) ? 1.0f - (float)iter * invMaxIter : 1.0f;
+                float val = clamp01(t);
+                float sat = 1.0f;
+                hsv_to_rgb(hue, sat, val, R, G, B);
+            }
         }
 
         int idx = (py * width + px) * 4;

@@ -287,19 +287,22 @@ namespace nfract
 
                 // Color: hue = root index / n, value = based on iterations
                 std::uint8_t R{}, G{}, B{};
-                const int numRoots = static_cast<int>(roots.size());
-                switch (p.colorMode)
+                if (iter != p.maxIter && bestDist2 < tol2)
                 {
-                case ColorMode::JEWELRY:
-                    shade_jewelry(iter, p.maxIter, bestIdx, numRoots, bestDist2, R, G, B);
-                    break;
-                case ColorMode::NEON:
-                    shade_neon(iter, p.maxIter, bestDist2, R, G, B);
-                    break;
-                case ColorMode::CLASSIC:
-                default:
-                    shade_classic(iter, p.maxIter, bestIdx, numRoots, R, G, B);
-                    break;
+                    const int numRoots = roots.size();
+                    switch (p.colorMode)
+                    {
+                    case ColorMode::JEWELRY:
+                        shade_jewelry(iter, p.maxIter, bestIdx, numRoots, bestDist2, R, G, B);
+                        break;
+                    case ColorMode::NEON:
+                        shade_neon(iter, p.maxIter, bestDist2, R, G, B);
+                        break;
+                    case ColorMode::CLASSIC:
+                    default:
+                        shade_classic(iter, p.maxIter, bestIdx, numRoots, R, G, B);
+                        break;
+                    }
                 }
 
                 auto* pix = image.pixel(px, py);
