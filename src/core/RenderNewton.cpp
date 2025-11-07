@@ -17,6 +17,16 @@ namespace nfract
             float im;
         };
 
+        [[nodiscard]] float clamp01(const float x) noexcept
+        {
+            return std::clamp(x, 0.0f, 1.0f);
+        }
+
+        [[nodiscard]] std::uint8_t to_byte01(const float x) noexcept
+        {
+            return static_cast<std::uint8_t>(clamp01(x) * 255.0f + 0.5f);
+        }
+
         [[nodiscard]] Complex mul(const Complex a, const Complex b) noexcept
         {
             return {
@@ -30,11 +40,6 @@ namespace nfract
             return z.re * z.re + z.im * z.im;
         }
 
-        [[nodiscard]] float abs(const Complex z) noexcept
-        {
-            return std::sqrt(abs2(z));
-        }
-
         [[nodiscard]] Complex pow_int(const Complex z, const int k) noexcept
         {
             Complex res{1.0f, 0.0f};
@@ -45,28 +50,25 @@ namespace nfract
             return res;
         }
 
-        void hsv_to_rgb(float h, const float s, const float v, std::uint8_t& R, std::uint8_t& G, std::uint8_t& B) noexcept
+        void hsv_to_rgb_f(float h, const float s, const float v, float& rf, float& gf, float& bf) noexcept
         {
             if (s <= 0.0f)
             {
-                const auto val = static_cast<std::uint8_t>(std::clamp(v, 0.0f, 1.0f) * 255.0f);
-                R = G = B = val;
+                const float val = clamp01(v);
+                rf = gf = bf = val;
                 return;
             }
 
-            h = std::fmod(h, 1.0f) * 6.0f;
+            h = (h - std::floor(h)) * 6.0f;
             const int i = static_cast<int>(std::floor(h));
             const float f = h - static_cast<float>(i);
             const float p = v * (1.0f - s);
             const float q = v * (1.0f - s * f);
             const float t = v * (1.0f - s * (1.0f - f));
 
-            auto to_u8 = [](const float x)
-            {
-                return static_cast<std::uint8_t>(std::clamp(x, 0.0f, 1.0f) * 255.0f);
-            };
-
-            float rf{}, gf{}, bf{};
+            rf = 0.0f;
+            gf = 0.0f;
+            bf = 0.0f;
             switch (i % 6)
             {
             case 0: rf = v;
@@ -96,9 +98,104 @@ namespace nfract
             default: break;
             }
 
+            rf = clamp01(rf);
+            gf = clamp01(gf);
+            bf = clamp01(bf);
+        }
+
+        void hsv_to_rgb(float h, const float s, const float v, std::uint8_t& R, std::uint8_t& G, std::uint8_t& B) noexcept
+        {
+            if (s <= 0.0f)
+            {
+                const auto val = static_cast<std::uint8_t>(clamp01(v) * 255.0f);
+                R = G = B = val;
+                return;
+            }
+
+            float rf{}, gf{}, bf{};
+            hsv_to_rgb_f(h, s, v, rf, gf, bf);
+
+            auto to_u8 = [](const float x) noexcept
+            {
+                return static_cast<std::uint8_t>(clamp01(x) * 255.0f);
+            };
+
             R = to_u8(rf);
             G = to_u8(gf);
             B = to_u8(bf);
+        }
+
+        [[nodiscard]] float compute_continuous_iteration(const int iter, const float bestDist2) noexcept
+        {
+            constexpr float SMOOTH = 1.0e-4f;
+
+            float d = std::sqrt(bestDist2);
+            d = std::max(d, 1.0e-12f);
+
+            float ratio = std::log(d) / std::log(SMOOTH);
+            ratio = std::max(ratio, 1.0e-12f);
+
+            return static_cast<float>(iter) - std::log(ratio) / std::log(2.0f);
+        }
+
+        void shade_jewelry(const int iter, const int maxIter, const int bestIdx, const int numRoots, const float bestDist2, std::uint8_t& R, std::uint8_t& G, std::uint8_t& B) noexcept
+        {
+            if (maxIter <= 0 || numRoots <= 0)
+            {
+                R = G = B = 0;
+                return;
+            }
+
+            const float ci = compute_continuous_iteration(iter, bestDist2);
+            const float color_value = 0.7f + 0.3f * std::cos(0.18f * ci);
+
+            if (iter == maxIter)
+            {
+                R = G = B = 0;
+                return;
+            }
+
+            const float h_base = static_cast<float>(bestIdx) / static_cast<float>(numRoots);
+            const float h_highlight = h_base + 2.0f / 3.0f;
+
+            float br{}, bg{}, bb{};
+            float hr{}, hg{}, hb{};
+
+            hsv_to_rgb_f(h_base, 1.0f, 1.0f, br, bg, bb);
+            hsv_to_rgb_f(h_highlight, 1.0f, 1.0f, hr, hg, hb);
+
+            const float rf = (br + 0.3f * hr) * color_value;
+            const float gf = (bg + 0.3f * hg) * color_value;
+            const float bf = (bb + 0.3f * hb) * color_value;
+
+            R = to_byte01(rf);
+            G = to_byte01(gf);
+            B = to_byte01(bf);
+        }
+
+        void shade_neon(const int iter, [[maybe_unused]] const int maxIter, const float bestDist2, std::uint8_t& R, std::uint8_t& G, std::uint8_t& B) noexcept
+        {
+            const float ci = compute_continuous_iteration(iter, bestDist2);
+
+            const float rf = (-std::cos(0.025f * ci) + 1.0f) * 0.5f;
+            const float gf = (-std::cos(0.08f * ci) + 1.0f) * 0.5f;
+            const float bf = (-std::cos(0.12f * ci) + 1.0f) * 0.5f;
+
+            R = to_byte01(rf);
+            G = to_byte01(gf);
+            B = to_byte01(bf);
+        }
+
+        void shade_classic(const int iter, const int maxIter, const int bestIdx, const int numRoots, std::uint8_t& R, std::uint8_t& G, std::uint8_t& B) noexcept
+        {
+            const float hue = numRoots > 0 ? static_cast<float>(bestIdx) / static_cast<float>(numRoots) : 0.0f;
+            const float t = maxIter > 1
+                                ? 1.0f - static_cast<float>(iter) / static_cast<float>(maxIter)
+                                : 1.0f;
+            const float value = std::clamp(t, 0.0f, 1.0f);
+            constexpr float sat = 1.0f;
+
+            hsv_to_rgb(hue, sat, value, R, G, B);
         }
     }
 
@@ -115,6 +212,7 @@ namespace nfract
 
         const auto roots_re = roots.re();
         const auto roots_im = roots.im();
+        const float tol2 = p.tolerance * p.tolerance;
 
         for (int py = 0; py < H; py++)
         {
@@ -128,17 +226,19 @@ namespace nfract
                 int iter = 0;
                 for (; iter < p.maxIter; ++iter)
                 {
-                    // f(z) = z^n - 1
-                    auto [re, im] = pow_int(z, p.degree);
-                    const Complex fz{re - 1.0f, im};
+                    // z^(n-1)
+                    const Complex zn1 = pow_int(z, p.degree - 1);
 
-                    if (abs(fz) < p.tolerance)
+                    // f(z) = z^n - 1
+                    const Complex zn = mul(zn1, z);
+                    const Complex fz{zn.re - 1.0f, zn.im};
+
+                    if (abs2(fz) < tol2)
                     {
                         break;
                     }
 
                     // f'(z) = n * z^(n-1)
-                    const Complex zn1 = pow_int(z, p.degree - 1);
                     const Complex fpz{
                         static_cast<float>(p.degree) * zn1.re,
                         static_cast<float>(p.degree) * zn1.im
@@ -150,8 +250,7 @@ namespace nfract
                         break;
                     }
 
-                    // f / f'
-                    // (a+ib)/(c+id) = ((ac+bd) + i(bc-ad)) / (c^2+d^2)
+                    // f / f' = (a+ib)/(c+id) = ((ac+bd) + i(bc-ad)) / (c^2+d^2)
                     const float a = fz.re;
                     const float b = fz.im;
                     const float c = fpz.re;
@@ -187,15 +286,21 @@ namespace nfract
                 }
 
                 // Color: hue = root index / n, value = based on iterations
-                const float hue = static_cast<float>(bestIdx) / static_cast<float>(std::max(1, roots.size()));
-                const float t = p.maxIter > 1
-                                    ? (1.0f - static_cast<float>(iter) / static_cast<float>(p.maxIter))
-                                    : 1.0f;
-                const float value = std::clamp(t, 0.0f, 1.0f);
-                constexpr float sat = 1.0f;
-
                 std::uint8_t R{}, G{}, B{};
-                hsv_to_rgb(hue, sat, value, R, G, B);
+                const int numRoots = static_cast<int>(roots.size());
+                switch (p.colorMode)
+                {
+                case ColorMode::JEWELRY:
+                    shade_jewelry(iter, p.maxIter, bestIdx, numRoots, bestDist2, R, G, B);
+                    break;
+                case ColorMode::NEON:
+                    shade_neon(iter, p.maxIter, bestDist2, R, G, B);
+                    break;
+                case ColorMode::CLASSIC:
+                default:
+                    shade_classic(iter, p.maxIter, bestIdx, numRoots, R, G, B);
+                    break;
+                }
 
                 auto* pix = image.pixel(px, py);
                 pix[0] = R;
@@ -230,6 +335,7 @@ namespace nfract
             roots_re.data(),
             roots_im.data(),
             roots.size(),
+            static_cast<int>(p.colorMode),
             image.data()
         );
     }

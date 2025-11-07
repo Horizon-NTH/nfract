@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <ranges>
 
 #include "app/ArgumentsParser.hpp"
@@ -9,6 +10,7 @@
 #include "core/RootsTable.hpp"
 
 using nfract::Arguments;
+using nfract::ColorMode;
 using nfract::Image;
 using nfract::RootsTable;
 
@@ -27,29 +29,38 @@ namespace
         args.ymax = 1.0f;
         args.tolerance = 1e-4f;
         args.outputPath.clear();
+        args.colorMode = ColorMode::CLASSIC;
         return args;
     }
 }
 
-TEST(RenderNewtonTest, CpuRendererFillsImage)
+TEST(RenderNewtonTest, CpuRendererFillsImageForAllColorModes)
 {
-    const Arguments args = make_default_args();
-    const RootsTable roots{args.degree};
-    Image img{args.width, args.height};
+    const Arguments base_args = make_default_args();
+    const RootsTable roots{base_args.degree};
+    constexpr std::array modes{
+        ColorMode::CLASSIC, ColorMode::JEWELRY, ColorMode::NEON
+    };
 
-    // Pre-fill with sentinel values to ensure the renderer writes all pixels.
-    std::fill(img.pixels().begin(), img.pixels().end(), std::uint8_t{17});
-
-    nfract::render_newton_cpu(args, roots, img);
-
-    const auto pixels = img.pixels();
-    ASSERT_FALSE(pixels.empty());
-    for (std::size_t i = 0; i < pixels.size(); i += 4)
+    for (const ColorMode mode : modes)
     {
-        EXPECT_NE(pixels[i + 0], 17) << "Pixel R channel not updated at index " << i;
-        EXPECT_NE(pixels[i + 1], 17) << "Pixel G channel not updated at index " << i;
-        EXPECT_NE(pixels[i + 2], 17) << "Pixel B channel not updated at index " << i;
-        EXPECT_EQ(pixels[i + 3], 255) << "Alpha channel expected to remain opaque";
+        Arguments args = base_args;
+        args.colorMode = mode;
+        Image img{args.width, args.height};
+
+        // Pre-fill with sentinel values to ensure the renderer writes all pixels.
+        std::fill(img.pixels().begin(), img.pixels().end(), std::uint8_t{17});
+
+        nfract::render_newton_cpu(args, roots, img);
+
+        const auto pixels = img.pixels();
+        ASSERT_FALSE(pixels.empty());
+        for (std::size_t i = 0; i < pixels.size(); i += 4)
+        {
+            const bool rgbUnchanged = (pixels[i + 0] == 17) && (pixels[i + 1] == 17) && (pixels[i + 2] == 17);
+            EXPECT_FALSE(rgbUnchanged) << "Pixel RGB channels not updated at index " << i;
+            EXPECT_EQ(pixels[i + 3], 255) << "Alpha channel expected to remain opaque";
+        }
     }
 }
 
@@ -68,19 +79,49 @@ TEST(RenderNewtonTest, CpuRendererHandlesInvalidInputGracefully)
 #ifndef RUN_ON_CPU
 TEST(RenderNewtonTest, IspcRendererMatchesCpuOutput)
 {
-    const Arguments args = make_default_args();
-    const RootsTable roots{args.degree};
+    const Arguments base_args = make_default_args();
+    const RootsTable roots{base_args.degree};
+    constexpr std::array modes{
+        ColorMode::CLASSIC, ColorMode::JEWELRY, ColorMode::NEON
+    };
 
-    Image cpu_img{args.width, args.height};
-    Image ispc_img{args.width, args.height};
+    for (const ColorMode mode : modes)
+    {
+        Arguments args = base_args;
+        args.colorMode = mode;
 
-    std::fill(cpu_img.pixels().begin(), cpu_img.pixels().end(), std::uint8_t{0});
-    std::fill(ispc_img.pixels().begin(), ispc_img.pixels().end(), std::uint8_t{0});
+        Image cpu_img{args.width, args.height};
+        Image ispc_img{args.width, args.height};
 
-    nfract::render_newton_cpu(args, roots, cpu_img);
-    nfract::render_newton_ispc(args, roots, ispc_img);
+        std::fill(cpu_img.pixels().begin(), cpu_img.pixels().end(), std::uint8_t{0});
+        std::fill(ispc_img.pixels().begin(), ispc_img.pixels().end(), std::uint8_t{0});
 
-    EXPECT_TRUE(std::ranges::equal(cpu_img.pixels(), ispc_img.pixels()))
-        << "CPU and ISPC renderers should produce identical RGBA output for the same parameters";
+        nfract::render_newton_cpu(args, roots, cpu_img);
+        nfract::render_newton_ispc(args, roots, ispc_img);
+
+        const auto cpu_pixels = cpu_img.pixels();
+        const auto ispc_pixels = ispc_img.pixels();
+        ASSERT_EQ(cpu_pixels.size(), ispc_pixels.size());
+
+        bool mismatch_found = false;
+        for (std::size_t i = 0; i < cpu_pixels.size(); ++i)
+        {
+            if (cpu_pixels[i] != ispc_pixels[i])
+            {
+                const std::size_t pixel_index = i / 4;
+                const int channel = static_cast<int>(i % 4);
+                ADD_FAILURE() << "Mode " << static_cast<int>(mode)
+                              << " pixel " << pixel_index
+                              << " channel " << channel
+                              << " cpu=" << static_cast<int>(cpu_pixels[i])
+                              << " ispc=" << static_cast<int>(ispc_pixels[i]);
+                mismatch_found = true;
+                break;
+            }
+        }
+
+        EXPECT_FALSE(mismatch_found)
+            << "CPU and ISPC renderers should produce identical RGBA output for the same parameters";
+    }
 }
 #endif

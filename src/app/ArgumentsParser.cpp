@@ -61,6 +61,13 @@ namespace nfract
                        "Output PNG file path")
            ->default_val(arguments.outputPath);
 
+        bool use_neon = false;
+        bool use_jewelry = false;
+        auto* neon_flag = app.add_flag("--neon", use_neon, "Render using the neon color palette");
+        auto* jewelry_flag = app.add_flag("--jewelry", use_jewelry, "Render using the jewelry color palette");
+        neon_flag->excludes(jewelry_flag);
+        jewelry_flag->excludes(neon_flag);
+
         try
         {
             app.parse(args.size(), args.data());
@@ -77,6 +84,15 @@ namespace nfract
         if (arguments.ymin >= arguments.ymax)
         {
             throw std::invalid_argument("ymin must be < ymax");
+        }
+
+        if (use_jewelry)
+        {
+            arguments.colorMode = ColorMode::JEWELRY;
+        }
+        else if (use_neon)
+        {
+            arguments.colorMode = ColorMode::NEON;
         }
 
         return arguments;
