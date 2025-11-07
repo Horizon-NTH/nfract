@@ -31,7 +31,8 @@ tolerance, iteration budget, and color palette directly from the command line.
 | ![Classic degree 3](docs/gallery/classic-n3.png) | ![Neon degree 3](docs/gallery/neon-n3.png) | ![Jewelry degree 3](docs/gallery/jewelry-n3.png) |
 
 > [!TIP]  
-> Refresh the gallery at any degree (default `5`) with `scripts/render_compare.sh -o docs/gallery [-n DEGREE]` and compare ISPC vs. CPU performance.
+> Refresh the gallery at any degree (default `5`) with `scripts/render_compare.sh -o docs/gallery [-n DEGREE]` and
+> compare ISPC vs. CPU performance.
 
 ## Installation
 
@@ -41,6 +42,14 @@ tolerance, iteration budget, and color palette directly from the command line.
 - A C++20 compiler (Clang 14+, GCC 11+, MSVC 2022)
 - [ISPC](https://ispc.github.io/downloads.html) if you want the vectorized backend (set `-DRUN_ON_CPU=ON` otherwise)
 - Ninja or Makefiles (any generator supported by your toolchain)
+
+> [!WARNING]  
+> Visual Studio generators do **not** support the ISPC build. Use the MSVC compiler through a Ninja/Makefiles generator,
+> or configure with `-DRUN_ON_CPU=ON` if you must stick to the VS generator.
+
+> [!NOTE]  
+> nfract targets macOS, Linux, and Windows. GitHub Actions currently exercise builds on all these platforms.
+> But the development was made on macOS, so this platform gets the most coverage.
 
 ### Get Source
 

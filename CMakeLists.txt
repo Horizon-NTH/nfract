@@ -8,6 +8,8 @@ endif ()
 
 project(nfract VERSION 0.0.0 LANGUAGES CXX)
 
+include(GNUInstallDirs)
+
 option(ENABLE_TESTS "Enable testing" OFF)
 option(RUN_ON_CPU "Run rendering on CPU instead of on ISPC" OFF)
 
@@ -59,6 +61,16 @@ add_executable(${PROJECT_NAME} src/Main.cpp)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_LIB})
+
+install(TARGETS ${PROJECT_NAME}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install(TARGETS ${PROJECT_LIB}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 if (ENABLE_TESTS)
     add_subdirectory(tests)
