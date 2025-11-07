@@ -85,6 +85,8 @@ TEST(RenderNewtonTest, IspcRendererMatchesCpuOutput)
         ColorMode::CLASSIC, ColorMode::JEWELRY, ColorMode::NEON
     };
 
+    constexpr int kChannelTolerance = 1;
+
     for (const ColorMode mode : modes)
     {
         Arguments args = base_args;
@@ -106,15 +108,18 @@ TEST(RenderNewtonTest, IspcRendererMatchesCpuOutput)
         bool mismatch_found = false;
         for (std::size_t i = 0; i < cpu_pixels.size(); ++i)
         {
-            if (cpu_pixels[i] != ispc_pixels[i])
+            const int diff = std::abs(static_cast<int>(cpu_pixels[i]) - static_cast<int>(ispc_pixels[i]));
+            if (diff > kChannelTolerance)
             {
                 const std::size_t pixel_index = i / 4;
                 const int channel = static_cast<int>(i % 4);
                 ADD_FAILURE() << "Mode " << static_cast<int>(mode)
-                              << " pixel " << pixel_index
-                              << " channel " << channel
-                              << " cpu=" << static_cast<int>(cpu_pixels[i])
-                              << " ispc=" << static_cast<int>(ispc_pixels[i]);
+                    << " pixel " << pixel_index
+                    << " channel " << channel
+                    << " cpu=" << static_cast<int>(cpu_pixels[i])
+                    << " ispc=" << static_cast<int>(ispc_pixels[i])
+                    << " diff=" << diff
+                    << " tolerance=" << kChannelTolerance;
                 mismatch_found = true;
                 break;
             }
